@@ -1,7 +1,13 @@
+applications:
+    app:
+        type: docker
+        dockerfile: Dockerfile
+        disk: 1024
+
 routes:
     "https://{default}/":
         type: upstream
-        upstream: "app:http"
+        upstream: app:http
     "http://{default}/":
         type: redirect
         to: "https://{default}/"
