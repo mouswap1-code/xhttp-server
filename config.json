@@ -1,5 +1,7 @@
 {
-    "log": { "loglevel": "info" },
+    "log": {
+        "loglevel": "info"
+    },
     "inbounds": [
         {
             "listen": "127.0.0.1",
@@ -8,7 +10,7 @@
             "settings": {
                 "clients": [
                     {
-                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "id": "81eead75-e0b0-4b91-bed3-dc86822dc8d6",
                         "flow": "xtls-rprx-vision"
                     }
                 ],
@@ -16,15 +18,31 @@
             },
             "streamSettings": {
                 "network": "xhttp",
-                "security": "none",
+                "security": "tls",
+                "tlsSettings": {
+                    "serverName": "ultrategateworld.benbilal237free.xyz",
+                    "fingerprint": "chrome",
+                    "alpn": ["h2", "http/1.1", "h3"]
+                },
                 "xhttpSettings": {
                     "path": "/",
-                    "mode": "packet-up"
+                    "mode": "auto",
+                    "extra": {
+                        "xPaddingBytes": "100-1000",
+                        "xPaddingObfsMode": true
+                    }
                 }
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": ["http", "tls"]
             }
         }
     ],
     "outbounds": [
-        { "protocol": "freedom", "tag": "direct" }
+        {
+            "protocol": "freedom",
+            "tag": "direct"
+        }
     ]
 }

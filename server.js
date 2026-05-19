@@ -1,6 +1,154 @@
+const os = require('os');
 const http = require('http');
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('XHTTP OK\n');
+const net = require('net');
+const { execSync } = require('child_process');
+
+// Vérifier les dépendances
+try {
+    require.resolve('ws');
+} catch (e) {
+    console.log('Installation ws...');
+    execSync('npm install ws', { stdio: 'inherit' });
+}
+const { WebSocket, createWebSocketStream } = require('ws');
+
+// Configuration depuis ton lien VLESS
+const NAME = process.env.NAME || os.hostname();
+const UUID = process.env.UUID || 'f09a960a-4f1b-495f-9962-f1a14e5a7791';
+const PORT = process.env.PORT || 8080;
+const DOMAIN = process.env.DOMAIN || 'main-bvxea6i-gzlonww5dskks.fr-3.platformsh.site';
+
+// Paramètres XHTTP
+const XHTTP_MODE = process.env.XHTTP_MODE || 'auto';
+const XHTTP_PATH = process.env.XHTTP_PATH || '/';
+const XHTTP_PADDING = process.env.XHTTP_PADDING || '100-1000';
+
+console.log("==========================================");
+console.log("Serveur VLESS + XHTTP");
+console.log("UUID:", UUID);
+console.log("Port interne:", PORT);
+console.log("Domaine:", DOMAIN);
+console.log("Mode XHTTP:", XHTTP_MODE);
+console.log("Padding:", XHTTP_PADDING);
+console.log("==========================================");
+
+// Serveur HTTP
+const httpServer = http.createServer((req, res) => {
+    const url = req.url;
+    
+    // Page d'accueil
+    if (url === '/') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Serveur XHTTP OK\n');
+        return;
+    }
+    
+    // Générer le lien VLESS (comme le tien)
+    if (url === `/${UUID}`) {
+        const vlessURL = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=${XHTTP_PATH}&host=&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=%7B%22xPaddingBytes%22%3A%22${XHTTP_PADDING}%22%7D&security=tls#XHTTP-${NAME}`;
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(vlessURL + '\n');
+        return;
+    }
+    
+    // Requête XHTTP POST
+    if (req.method === 'POST') {
+        let body = [];
+        req.on('data', chunk => body.push(chunk));
+        req.on('end', () => {
+            const data = Buffer.concat(body);
+            res.writeHead(200, {
+                'Content-Type': 'application/octet-stream',
+                'Cache-Control': 'no-store',
+                'X-Accel-Buffering': 'no',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end();
+        });
+        return;
+    }
+    
+    // Requête XHTTP GET
+    if (req.method === 'GET') {
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-store',
+            'X-Accel-Buffering': 'no',
+            'Access-Control-Allow-Origin': '*'
+        });
+        req.socket.setTimeout(0);
+        return;
+    }
+    
+    res.writeHead(404);
+    res.end('Not Found\n');
 });
-server.listen(process.env.PORT || 8080);
+
+// Démarrer le serveur
+httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`Serveur XHTTP démarré sur le port ${PORT}`);
+    console.log(`Lien VLESS: vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=${XHTTP_PATH}&host=&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&security=tls#XHTTP-${NAME}`);
+});
+
+// WebSocket pour compatibilité
+const wss = new WebSocket.Server({ server: httpServer });
+const uuidHex = UUID.replace(/-/g, "");
+
+wss.on('connection', (ws, req) => {
+    ws.on('message', (msg) => {
+        try {
+            const VERSION = msg[0];
+            const id = msg.slice(1, 17);
+            
+            let match = true;
+            for (let i = 0; i < 16; i++) {
+                if (id[i] !== parseInt(uuidHex.substr(i * 2, 2), 16)) {
+                    match = false;
+                    break;
+                }
+            }
+            if (!match) {
+                ws.close();
+                return;
+            }
+            
+            let i = msg[17] + 19;
+            const port = msg.readUInt16BE(i);
+            i += 2;
+            const ATYP = msg[i++];
+            
+            let host;
+            if (ATYP === 1) {
+                host = msg.slice(i, i + 4).join('.');
+                i += 4;
+            } else if (ATYP === 2) {
+                const len = msg[i++];
+                host = msg.slice(i, i + len).toString();
+                i += len;
+            } else if (ATYP === 3) {
+                host = msg.slice(i, i + 16).reduce((acc, b, idx) => {
+                    if (idx % 2 === 0) acc.push(msg.readUInt16BE(i + idx));
+                    return acc;
+                }, []).map(p => p.toString(16)).join(':');
+                i += 16;
+            } else {
+                ws.close();
+                return;
+            }
+            
+            ws.send(new Uint8Array([VERSION, 0]));
+            const duplex = createWebSocketStream(ws);
+            const socket = net.connect({ host, port }, () => {
+                if (msg.slice(i)) socket.write(msg.slice(i));
+                duplex.pipe(socket).pipe(duplex);
+            });
+            socket.on('error', () => duplex.destroy());
+            duplex.on('error', () => socket.destroy());
+        } catch (err) {
+            console.error('Erreur:', err);
+            ws.close();
+        }
+    });
+});
+
+console.log("Serveur prêt - XHTTP mode " + XHTTP_MODE);
