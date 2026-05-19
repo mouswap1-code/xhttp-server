@@ -1,0 +1,9 @@
+name: app
+type: nodejs:20
+
+web:
+    commands:
+        start: npm run start
+    locations:
+        /:
+            passthru: true
