@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 try { require.resolve('ws'); } catch(e) { execSync('npm install ws', { stdio: 'inherit' }); }
 const { WebSocket, createWebSocketStream } = require('ws');
 
-// Configuration basée sur ton lien VLESS corrigé
+// Configuration basée sur ton lien VLESS
 const NAME = process.env.NAME || os.hostname();
 const UUID = 'f09a960a-4f1b-495f-9962-f1a14e5a7791';
 const PORT = process.env.PORT || 8080;
@@ -17,12 +17,6 @@ const DOMAIN = 'main-bvxea6i-gzlonww5dskks.fr-3.platformsh.site';
 const XHTTP_MODE = 'auto';
 const XHTTP_PATH = '/';
 const XHTTP_PADDING = '100-1000';
-const TLS_SETTINGS = {
-    security: 'tls',
-    sni: DOMAIN,
-    alpn: ['h2', 'http/1.1'],
-    fingerprint: 'chrome'
-};
 
 console.log("==========================================");
 console.log("Serveur VLESS XHTTP - Upsun");
@@ -31,7 +25,6 @@ console.log("Domaine:", DOMAIN);
 console.log("Port interne:", PORT);
 console.log("Mode XHTTP:", XHTTP_MODE);
 console.log("Padding:", XHTTP_PADDING);
-console.log("TLS: activé (SNI, ALPN, Chrome FP)");
 console.log("==========================================");
 
 const httpServer = http.createServer((req, res) => {
@@ -44,9 +37,9 @@ const httpServer = http.createServer((req, res) => {
         return;
     }
     
-    // Générer le lien VLESS (exactement comme ton lien corrigé)
+    // Générer le lien VLESS (exactement comme ton lien, mais avec domaine Upsun)
     if (url === `/${UUID}`) {
-        const vlessURL = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=%2F&host=${DOMAIN}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=%7B%22xPaddingBytes%22%3A%22${XHTTP_PADDING}%22%7D&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=${DOMAIN}#XHTTP-${NAME}`;
+        const vlessURL = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=${XHTTP_PATH}&host=${DOMAIN}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=%7B%22xPaddingBytes%22%3A%22${XHTTP_PADDING}%22%7D&security=tls#XHTTP-${NAME}`;
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end(vlessURL + '\n');
         return;
@@ -87,7 +80,7 @@ const httpServer = http.createServer((req, res) => {
 // Démarrer le serveur
 httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Serveur XHTTP démarré sur le port ${PORT}`);
-    console.log(`Lien VLESS: vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=%2F&host=${DOMAIN}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&security=tls&fp=chrome&alpn=h2,http/1.1&sni=${DOMAIN}`);
+    console.log(`Lien VLESS: vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=${XHTTP_PATH}&host=${DOMAIN}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&security=tls`);
 });
 
 // Support WebSocket pour compatibilité
