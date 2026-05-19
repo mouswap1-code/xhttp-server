@@ -3,36 +3,37 @@ const http = require('http');
 const net = require('net');
 const { execSync } = require('child_process');
 
-// Vérifier les dépendances
-try {
-    require.resolve('ws');
-} catch (e) {
-    console.log('Installation ws...');
-    execSync('npm install ws', { stdio: 'inherit' });
-}
+// Vérifier ws
+try { require.resolve('ws'); } catch(e) { execSync('npm install ws', { stdio: 'inherit' }); }
 const { WebSocket, createWebSocketStream } = require('ws');
 
-// Configuration depuis ton lien VLESS
+// Configuration basée sur ton lien VLESS corrigé
 const NAME = process.env.NAME || os.hostname();
-const UUID = process.env.UUID || 'f09a960a-4f1b-495f-9962-f1a14e5a7791';
+const UUID = 'f09a960a-4f1b-495f-9962-f1a14e5a7791';
 const PORT = process.env.PORT || 8080;
-const DOMAIN = process.env.DOMAIN || 'main-bvxea6i-gzlonww5dskks.fr-3.platformsh.site';
+const DOMAIN = 'main-bvxea6i-gzlonww5dskks.fr-3.platformsh.site';
 
-// Paramètres XHTTP
-const XHTTP_MODE = process.env.XHTTP_MODE || 'auto';
-const XHTTP_PATH = process.env.XHTTP_PATH || '/';
-const XHTTP_PADDING = process.env.XHTTP_PADDING || '100-1000';
+// Paramètres XHTTP (depuis ton lien)
+const XHTTP_MODE = 'auto';
+const XHTTP_PATH = '/';
+const XHTTP_PADDING = '100-1000';
+const TLS_SETTINGS = {
+    security: 'tls',
+    sni: DOMAIN,
+    alpn: ['h2', 'http/1.1'],
+    fingerprint: 'chrome'
+};
 
 console.log("==========================================");
-console.log("Serveur VLESS + XHTTP");
+console.log("Serveur VLESS XHTTP - Upsun");
 console.log("UUID:", UUID);
-console.log("Port interne:", PORT);
 console.log("Domaine:", DOMAIN);
+console.log("Port interne:", PORT);
 console.log("Mode XHTTP:", XHTTP_MODE);
 console.log("Padding:", XHTTP_PADDING);
+console.log("TLS: activé (SNI, ALPN, Chrome FP)");
 console.log("==========================================");
 
-// Serveur HTTP
 const httpServer = http.createServer((req, res) => {
     const url = req.url;
     
@@ -43,9 +44,9 @@ const httpServer = http.createServer((req, res) => {
         return;
     }
     
-    // Générer le lien VLESS (comme le tien)
+    // Générer le lien VLESS (exactement comme ton lien corrigé)
     if (url === `/${UUID}`) {
-        const vlessURL = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=${XHTTP_PATH}&host=&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=%7B%22xPaddingBytes%22%3A%22${XHTTP_PADDING}%22%7D&security=tls#XHTTP-${NAME}`;
+        const vlessURL = `vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=%2F&host=${DOMAIN}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&extra=%7B%22xPaddingBytes%22%3A%22${XHTTP_PADDING}%22%7D&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&sni=${DOMAIN}#XHTTP-${NAME}`;
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end(vlessURL + '\n');
         return;
@@ -56,7 +57,6 @@ const httpServer = http.createServer((req, res) => {
         let body = [];
         req.on('data', chunk => body.push(chunk));
         req.on('end', () => {
-            const data = Buffer.concat(body);
             res.writeHead(200, {
                 'Content-Type': 'application/octet-stream',
                 'Cache-Control': 'no-store',
@@ -68,7 +68,7 @@ const httpServer = http.createServer((req, res) => {
         return;
     }
     
-    // Requête XHTTP GET
+    // Requête XHTTP GET (streaming descendant)
     if (req.method === 'GET') {
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
@@ -87,29 +87,25 @@ const httpServer = http.createServer((req, res) => {
 // Démarrer le serveur
 httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Serveur XHTTP démarré sur le port ${PORT}`);
-    console.log(`Lien VLESS: vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=${XHTTP_PATH}&host=&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&security=tls#XHTTP-${NAME}`);
+    console.log(`Lien VLESS: vless://${UUID}@${DOMAIN}:443?type=xhttp&encryption=none&path=%2F&host=${DOMAIN}&mode=${XHTTP_MODE}&x_padding_bytes=${XHTTP_PADDING}&security=tls&fp=chrome&alpn=h2,http/1.1&sni=${DOMAIN}`);
 });
 
-// WebSocket pour compatibilité
+// Support WebSocket pour compatibilité
 const wss = new WebSocket.Server({ server: httpServer });
 const uuidHex = UUID.replace(/-/g, "");
 
-wss.on('connection', (ws, req) => {
+wss.on('connection', (ws) => {
     ws.on('message', (msg) => {
         try {
             const VERSION = msg[0];
             const id = msg.slice(1, 17);
             
-            let match = true;
+            // Vérification UUID
             for (let i = 0; i < 16; i++) {
                 if (id[i] !== parseInt(uuidHex.substr(i * 2, 2), 16)) {
-                    match = false;
-                    break;
+                    ws.close();
+                    return;
                 }
-            }
-            if (!match) {
-                ws.close();
-                return;
             }
             
             let i = msg[17] + 19;
@@ -145,7 +141,6 @@ wss.on('connection', (ws, req) => {
             socket.on('error', () => duplex.destroy());
             duplex.on('error', () => socket.destroy());
         } catch (err) {
-            console.error('Erreur:', err);
             ws.close();
         }
     });
