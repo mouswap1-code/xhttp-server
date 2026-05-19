@@ -1,25 +1,24 @@
-# Upsun configuration, generated using AI at: 2026-05-19T01:28:35.475Z
-# AI can make mistakes. Please modify this file to suit your needs.
 applications:
-  app:
-    type: nodejs:20  # Using latest Node.js 20 from Registry matching Dockerfile base image
-    build:
-      flavor: none  # Explicit build commands preferred over default npm flavor
-    hooks:
-      build: |
-        set -ex
-        npm install
-    web:
-      commands:
-        start: node server.js  # Matches package.json start script
-      locations:
-        /:
-          passthru: true  # Pass through to Node.js app for all requests
-    variables:
-      env:
-        NODE_ENV: production  # Production environment
+    app:
+        type: nodejs:20
+        build:
+            flavor: none
+        hooks:
+            build: |
+                set -ex
+                npm install
+                npm install -g xray-core
+        web:
+            commands:
+                start: xray run -c config.json
+            locations:
+                /:
+                    passthru: true
+        variables:
+            env:
+                NODE_ENV: production
 
 routes:
-  https://{default}/:
-    type: upstream
-    upstream: app:http
+    https://{default}/:
+        type: upstream
+        upstream: app:http

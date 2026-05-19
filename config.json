@@ -1,0 +1,30 @@
+{
+    "log": { "loglevel": "info" },
+    "inbounds": [
+        {
+            "listen": "127.0.0.1",
+            "port": 8080,
+            "protocol": "vless",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "flow": "xtls-rprx-vision"
+                    }
+                ],
+                "decryption": "none"
+            },
+            "streamSettings": {
+                "network": "xhttp",
+                "security": "none",
+                "xhttpSettings": {
+                    "path": "/",
+                    "mode": "packet-up"
+                }
+            }
+        }
+    ],
+    "outbounds": [
+        { "protocol": "freedom", "tag": "direct" }
+    ]
+}
