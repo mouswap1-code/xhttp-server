@@ -1,29 +1,13 @@
 applications:
     app:
-        type: nodejs:20
-        build:
-            flavor: none
-        hooks:
-            build: |
-                set -ex
-                apt-get update
-                apt-get install -y unzip curl
-                curl -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o /tmp/xray.zip
-                unzip /tmp/xray.zip -d /tmp/xray
-                mv /tmp/xray/xray /usr/local/bin/xray
-                chmod +x /usr/local/bin/xray
-                npm install
-        web:
-            commands:
-                start: xray run -c config.json
-            locations:
-                /:
-                    passthru: true
-        variables:
-            env:
-                NODE_ENV: production
+        type: docker:20
+        dockerfile: Dockerfile
+        disk: 1024
 
 routes:
-    https://{default}/:
+    "https://{default}/":
         type: upstream
         upstream: app:http
+    "http://{default}/":
+        type: redirect
+        to: "https://{default}/"
