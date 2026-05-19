@@ -1,6 +1,6 @@
 applications:
     app:
-        type: docker
+        type: docker:20
         dockerfile: Dockerfile
         disk: 1024
 
