@@ -1,9 +1,0 @@
-name: app
-type: nodejs:20
-
-web:
-    commands:
-        start: node server.js
-    locations:
-        /:
-            allow: true
