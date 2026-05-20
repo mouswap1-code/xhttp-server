@@ -7,8 +7,6 @@ applications:
             locations:
                 /:
                     passthru: true
-                /xhttp:
-                    passthru: true
 
 routes:
     "https://{default}/":
