@@ -7,11 +7,23 @@ applications:
             locations:
                 /:
                     passthru: true
+        size:
+            cpu: 0.25
+            memory: 512
+            idle_timeout: 300
 
 routes:
     "https://{default}/":
         type: upstream
         upstream: "app:http"
+        cache:
+            enabled: true
+            default_ttl: 3600
     "http://{default}/":
         type: redirect
         to: "https://{default}/"
+
+resources:
+    router:
+        cpu: 0.1
+        memory: 256
