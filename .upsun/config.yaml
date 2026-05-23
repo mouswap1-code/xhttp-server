@@ -8,8 +8,8 @@ applications:
                 /:
                     passthru: true
         size:
-            cpu: 0.25
-            memory: 512
+            cpu: 0.9
+            memory: 1000
             idle_timeout: 300
 
 routes:
@@ -25,5 +25,5 @@ routes:
 
 resources:
     router:
-        cpu: 0.1
-        memory: 256
+        cpu: 0.9
+        memory: 500
