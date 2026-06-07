@@ -1,15 +1,14 @@
 applications:
   app:
     type: nodejs:20
-    size: XS
+    web:
+      commands:
+        start: node server.js
 
 routes:
   "https://{default}/":
     type: upstream
     upstream: "app:http"
-    cache:
-      enabled: true
-      default_ttl: 300
   "http://{default}/":
     type: redirect
     to: "https://{default}/"
