@@ -1,20 +1,15 @@
 applications:
-    app:
-        type: nodejs:20
-        web:
-            commands:
-                start: node server.js
-            locations:
-                /:
-                    passthru: true
-        size: "1:1000"
+  app:
+    type: nodejs:20
+    size: XS
 
 routes:
-    "https://{default}/":
-        type: upstream
-        upstream: "app:http"
-        cache:
-            enabled: false
-    "http://{default}/":
-        type: redirect
-        to: "https://{default}/"
+  "https://{default}/":
+    type: upstream
+    upstream: "app:http"
+    cache:
+      enabled: true
+      default_ttl: 300
+  "http://{default}/":
+    type: redirect
+    to: "https://{default}/"
