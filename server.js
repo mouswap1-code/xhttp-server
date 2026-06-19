@@ -2,10 +2,10 @@ const http = require('http');
 const https = require('https');
 
 // === NOUVELLE CONFIGURATION ===
-const VPS_HOST = '162.248.100.117';                        // IP du VPS (pas de domaine)
+const VPS_HOST = '188.213.28.174';                        // IP du VPS (pas de domaine)
 const VPS_PORT = 80;                                       // Port du VPS
-const UUID = 'efe3687a-70e3-48f1-800d-f33b01918b9a';       // Nouvel UUID
-const VPS_IP = '162.248.100.117';                          // IP pour la route
+const UUID = 'b40c163d-e7bc-44e0-8d29-669f7826d9c9';       // Nouvel UUID
+const VPS_IP = '188.213.28.174';                          // IP pour la route
 const PORT = process.env.PORT || 8080;
 
 // Paramètres XHTTP
